@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ORYX Police</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:'Poppins',sans-serif;
+background:#020817;
+color:white;
+overflow-x:hidden;
+}
+
+/* BACKGROUND */
+body::before{
+content:"";
+position:fixed;
+width:100%;
+height:100%;
+background:
+linear-gradient(rgba(61,165,255,0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(61,165,255,0.04) 1px, transparent 1px);
+background-size:50px 50px;
+opacity:0.15;
+pointer-events:none;
+z-index:-1;
+}
+
+/* TOPBAR */
+.topbar{
+height:72px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:0 25px;
+background:rgba(3,10,20,0.96);
+border-bottom:1px solid rgba(61,165,255,0.12);
+backdrop-filter:blur(15px);
+position:sticky;
+top:0;
+z-index:999;
+}
+
+.top-left{
+display:flex;
+align-items:center;
+gap:18px;
+}
+
+.hamburger{
+font-size:30px;
+cursor:pointer;
+color:white;
+}
+
+.topbar-logo{
+height:52px;
+filter:
+drop-shadow(0 0 12px rgba(61,165,255,0.7));
+}
+
+.admin-profile{
+display:flex;
+align-items:center;
+gap:10px;
+font-size:18px;
+font-weight:600;
+}
+
+/* SIDEBAR */
+.sidebar{
+width:280px;
+background:
+linear-gradient(
+180deg,
+rgba(3,12,25,0.98),
+rgba(2,8,18,0.98)
+);
+
+border-right:
+1px solid rgba(61,165,255,0.1);
+
+transition:0.4s ease;
+
+padding:20px 14px;
+
+display:flex;
+flex-direction:column;
+
+height:calc(100vh - 72px);
+
+position:fixed;
+
+left:0;
+top:72px;
+
+overflow-y:auto;
+
+z-index:90;
+}
+
+.sidebar.closed{
+transform:translateX(-100%);
+}
+
+.sidebar-logo{
+width:200px;
+margin:10px auto 25px auto;
+display:block;
+}
+
+.sidebar button{
+background:transparent;
+border:none;
+color:#EAF4FF;
+padding:14px 18px;
+border-radius:12px;
+text-align:left;
+cursor:pointer;
+font-size:16px;
+display:flex;
+align-items:center;
+gap:14px;
+margin-bottom:8px;
+transition:0.3s;
+width:100%;
+}
+
+.sidebar button:hover,
+.sidebar button.active-btn{
+background:
+linear-gradient(
+90deg,
+rgba(30,144,255,0.35),
+rgba(61,165,255,0.12)
+);
+}
+
+.sidebar button i{
+font-size:18px;
+width:22px;
+}
+
+/* MAIN */
+.main{
+margin-left:280px;
+padding:25px;
+transition:0.4s ease;
+min-height:calc(100vh - 72px);
+}
+
+.main.full{
+margin-left:0;
+}
+
+/* GRID */
+.main-layout{
+display:grid;
+grid-template-columns:320px 1fr 320px;
+gap:24px;
+align-items:start;
+}
+
+/* CARD */
+.card{
+background:rgba(5,12,24,0.96);
+border:1px solid rgba(61,165,255,0.15);
+border-radius:24px;
+padding:28px;
+
+box-shadow:
+0 0 25px rgba(0,0,0,0.22),
+inset 0 0 18px rgba(61,165,255,0.03);
+}
+
+/* TITLES */
+.card h3{
+color:#EAF4FF;
+margin-bottom:22px;
+font-size:28px;
+font-weight:700;
+}
+
+/* PERSON */
+#personCard{
+background:rgba(255,255,255,0.03);
+padding:18px;
+border-radius:18px;
+
+border:
+1px solid rgba(61,165,255,0.08);
+}
+
+#personImage{
+width:100px !important;
+height:100px !important;
+border-radius:14px;
+object-fit:cover;
+
+border:
+2px solid rgba(61,165,255,0.3);
+}
+
+#personName{
+font-size:24px !important;
+font-weight:700;
+}
+
+#personDesc,
+#personNid,
+#personLocation{
+font-size:14px !important;
+opacity:0.85;
+}
+
+/* STATUS */
+.status{
+padding:8px 14px;
+border-radius:10px;
+display:inline-block;
+margin:12px 0;
+font-weight:700;
+font-size:14px;
+}
+
+.high{
+background:#7c1010;
+color:#ff7272;
+}
+
+.safe{
+background:#00ffc8;
+color:black;
+}
+
+/* BUTTONS */
+.btn{
+padding:12px 18px;
+border:none;
+border-radius:12px;
+cursor:pointer;
+font-size:15px;
+font-weight:600;
+transition:.3s;
+}
+
+.confirm{
+background:
+linear-gradient(
+135deg,
+#1E90FF,
+#3DA5FF
+);
+
+color:white;
+}
+
+.confirm:hover{
+transform:translateY(-2px);
+
+box-shadow:
+0 0 14px rgba(61,165,255,0.45);
+}
+
+.ignore{
+background:#222b3d;
+color:white;
+}
+
+/* CAMERA */
+.camera-box{
+position:relative;
+background:#000;
+border-radius:18px;
+overflow:hidden;
+
+border:
+1px solid rgba(61,165,255,0.2);
+.camera-box {
+    position: relative;
+}
+}
+
+#video{
+width:100%;
+display:block;
+border-radius:18px;
+}
+
+#overlay{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+}
+
+/* ALERTS */
+.alert-item,
+#systemAlerts div{
+background:rgba(255,255,255,0.03);
+border:1px solid rgba(61,165,255,0.08);
+padding:16px;
+border-radius:14px;
+margin-bottom:12px;
+font-size:15px;
+line-height:1.7;
+}
+
+/* RIGHT PANEL */
+.right-panel{
+display:flex;
+flex-direction:column;
+gap:22px;
+}
+
+/* RESPONSIVE */
+@media(max-width:1300px){
+
+.main-layout{
+grid-template-columns:1fr;
+}
+
+.main{
+margin-left:0;
+}
+
+.sidebar{
+transform:translateX(-100%);
+}
+
+.sidebar.show{
+transform:translateX(0);
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+
+<div class="top-left">
+
+<div class="hamburger"
+onclick="toggleSidebar()">
+☰
+</div>
+
+<img
+src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}"
+class="topbar-logo">
+
+</div>
+
+<div class="admin-profile">
+
+<i class="fas fa-user-circle"></i>
+
+<span>Police</span>
+
+<i class="fas fa-chevron-down"></i>
+
+</div>
+
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+
+<img
+src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}"
+class="sidebar-logo">
+
+<button class="active-btn"
+onclick="showSection('liveSection', this)">
+
+<i class="fas fa-video"></i>
+
+Live Monitoring
+
+</button>
+
+<button
+onclick="showSection('recognizedSection', this)">
+
+<i class="fas fa-users"></i>
+
+Recognized Persons
+
+</button>
+
+<button
+onclick="showSection('logsSection', this)">
+
+<i class="fas fa-clipboard-list"></i>
+
+Incident Logs
+
+</button>
+<button
+onclick="showSection('plateSection', this)">
+
+<i class="fas fa-car"></i>
+
+Plate Detection
+
+</button>
+
+<div style="margin-top:auto; padding-top:20px;">
+
+<button>
+
+<i class="fas fa-gear"></i>
+
+Settings
+
+</button>
+
+<button onclick="logout()">
+
+<i class="fas fa-right-from-bracket"></i>
+
+Logout
+
+</button>
+
+</div>
+
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainContent">
+
+<!-- LIVE SECTION -->
+<div id="liveSection">
+
+<div class="main-layout">
+
+<!-- LEFT -->
+<div class="card">
+
+<h3>Detected Person</h3>
+
+<div id="status" class="status">
+UNKNOWN
+</div>
+
+<div id="personCard" style="display:none;">
+
+<div style="display:flex; gap:15px; align-items:center;">
+
+<img id="personImage">
+
+<div>
+
+<h3 id="personName" style="margin:0;"></h3>
+
+<span id="personRisk"
+style="padding:4px 8px; border-radius:6px; font-size:12px;">
+</span>
+
+<p id="personDesc"
+style="margin:5px 0; font-size:13px;">
+</p>
+
+<p id="personNid"
+style="margin:0; font-size:12px;">
+</p>
+
+<p id="personLocation"
+style="margin:0; font-size:12px;">
+</p>
+
+</div>
+
+</div>
+
+<br>
+
+<button class="btn confirm">
+Confirm
+</button>
+
+<button class="btn ignore">
+Ignore
+</button>
+
+</div>
+
+</div>
+
+<!-- CENTER -->
+<div class="card">
+
+<h3>Live Camera</h3>
+
+<div class="camera-box">
+
+<video id="video" autoplay></video>
+
+<canvas id="overlay"></canvas>
+
+</div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="right-panel">
+
+<div class="card">
+
+<h3>System Alerts</h3>
+
+<div id="systemAlerts"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- RECOGNIZED -->
+<div id="recognizedSection"
+class="card"
+style="display:none;">
+
+<h3>Recognized Persons</h3>
+
+<div id="recognizedListContent"></div>
+
+</div>
+
+<!-- LOGS -->
+<div id="logsSection"
+class="card"
+style="display:none;">
+
+<h3>Incident Logs</h3>
+
+<div id="logs"></div>
+
+</div>
+
+<!-- PLATE DETECTION -->
+<div id="plateSection"
+class="card"
+style="display:none;">
+
+<h3>License Plate Detection</h3>
+
+<div class="camera-box">
+
+<video id="plateVideo"
+autoplay
+playsinline
+muted
+style="
+width:100%;
+border-radius:18px;
+background:black;
+">
+</video>
+
+<canvas id="plateCanvas"
+style="
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+">
+</canvas>
+
+</div>
+
+<br>
+
+<div id="plateResult"
+class="alert-item">
+
+Waiting for plate detection...
+
+</div>
+
+</div>
+<script>
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+
+/* CAMERA */
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+video.srcObject = stream;
+});
+
+/* DETECTION LOOP */
+let faceInterval =
+setInterval(captureFrame, 300);
+let processing = false;
+
+async function captureFrame(){
+
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
+
+ctx.drawImage(video, 0, 0);
+
+canvas.toBlob(async function(blob){
+
+let formData = new FormData();
+blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+formData.append("image", blob);
+
+const res = await fetch("/detect_face_live",{
+method:"POST",
+body: formData
+});
+
+const data = await res.json();
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+if(data.face){
+
+    // 🔥 تحديد اللون حسب الحالة
+    if(data.risk === "WANTED"){
+
+        ctx.strokeStyle = "#ff3b3b"; // أحمر
+
+    }else if(data.risk === "SAFE"){
+        ctx.shadowColor = "#00ff88";
+        ctx.shadowBlur = 25;
+        ctx.strokeStyle = "#00ff88"; // أخضر
+
+    }else{
+
+        ctx.strokeStyle = "#ffd500"; // أصفر UNKNOWN
+
+    }
+
+    ctx.lineWidth = 4;
+
+    // 🔥 رسم المربع
+    ctx.strokeRect(
+        data.face.x,
+        data.face.y,
+        data.face.w,
+        data.face.h
+    );
+
+    // 🔥 اسم الشخص فوق الوجه
+    ctx.font = "18px Poppins";
+    ctx.fillStyle = ctx.strokeStyle;
+
+    ctx.fillText(
+        data.name || "Unknown",
+        data.face.x,
+        data.face.y - 10
+    );
+
+    updateInfo(data);
+}
+
+});
+
+}
+
+/* UPDATE INFO */
+function updateInfo(data){
+
+const card = document.getElementById("personCard");
+const name = document.getElementById("personName");
+const nid = document.getElementById("personNid");
+const risk = document.getElementById("personRisk");
+const img = document.getElementById("personImage");
+const desc = document.getElementById("personDesc");
+const locationEl = document.getElementById("personLocation");
+
+locationEl.innerText =
+"Location: " + data.location;
+
+if(data.name){
+
+card.style.display = "block";
+
+name.innerText = data.name;
+
+nid.innerText =
+"National ID: " + data.nid;
+
+img.src =
+"/get_image?path=" + encodeURIComponent(data.image);
+
+desc.innerText =
+data.risk === "WANTED"
+? "Wanted for investigation"
+: "No criminal record";
+
+risk.innerText = data.risk;
+
+if(data.risk === "WANTED"){
+
+risk.className = "high";
+
+}else{
+
+risk.className = "safe";
+
+}
+
+}else{
+
+card.style.display = "none";
+
+}
+addRecognizedPerson(data);
+}
+
+/* ALERTS */
+async function loadSystemAlerts(){
+
+const res = await fetch("/system_alerts");
+
+const data = await res.json();
+
+let html = "";
+
+data.forEach(a=>{
+
+html += `<div>⚠ ${a.message}</div>`;
+
+});
+
+document
+.getElementById("systemAlerts")
+.innerHTML = html;
+
+}
+
+loadSystemAlerts();
+
+setInterval(loadSystemAlerts,5000);
+
+/* RECOGNIZED */
+/* REAL RECOGNIZED PERSONS */
+let recognizedPersons = [];
+
+function addRecognizedPerson(data){
+
+if(!data.name) return;
+
+/* منع التكرار */
+const exists = recognizedPersons.find(
+p => p.name === data.name
+);
+
+if(exists) return;
+
+recognizedPersons.unshift({
+
+name: data.name,
+nid: data.nid,
+risk: data.risk,
+location: data.location,
+image: data.image,
+time: new Date().toLocaleTimeString()
+
+});
+
+renderRecognizedPersons();
+
+}
+
+/* RENDER */
+function renderRecognizedPersons(){
+
+let html = "";
+
+recognizedPersons.forEach((p,index)=>{
+
+html += `
+
+<div class="alert-item"
+style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:20px;
+padding:18px;
+">
+
+<div style="
+display:flex;
+gap:18px;
+align-items:center;
+">
+
+<img src="/get_image?path=${encodeURIComponent(p.image)}"
+style="
+width:70px;
+height:70px;
+border-radius:14px;
+object-fit:cover;
+border:2px solid rgba(61,165,255,0.3);
+">
+
+<div>
+
+<div style="
+font-size:20px;
+font-weight:700;
+margin-bottom:6px;
+">
+
+${p.name}
+
+</div>
+
+<div style="opacity:.8;">
+ID: ${p.nid}
+</div>
+
+<div style="opacity:.8;">
+${p.location}
+</div>
+
+<div style="
+margin-top:6px;
+color:${p.risk === 'WANTED'
+? '#ff4d4d'
+: '#00ffc8'};
+font-weight:700;
+">
+
+${p.risk}
+
+</div>
+
+<div style="
+font-size:13px;
+opacity:.6;
+margin-top:4px;
+">
+
+Detected at ${p.time}
+
+</div>
+
+</div>
+
+</div>
+
+<div style="
+display:flex;
+gap:12px;
+">
+
+<button class="btn confirm"
+onclick="confirmPerson(${index})">
+
+Confirm
+
+</button>
+
+<button class="btn ignore"
+onclick="ignorePerson(${index})">
+
+Ignore
+
+</button>
+
+</div>
+
+</div>
+
+`;
+
+});
+
+document
+.getElementById("recognizedListContent")
+.innerHTML =
+html ||
+`
+<div class="alert-item">
+No recognized persons yet
+</div>
+`;
+
+}
+
+/* CONFIRM */
+function confirmPerson(index){
+
+alert(
+recognizedPersons[index].name +
+" confirmed"
+);
+
+}
+
+/* IGNORE */
+function ignorePerson(index){
+
+recognizedPersons.splice(index,1);
+
+renderRecognizedPersons();
+
+}
+
+/* LOGS */
+async function loadLogs(){
+
+const res = await fetch("/logs");
+
+const data = await res.json();
+
+let html = "";
+
+data.slice(0,6).forEach(l => {
+
+html += `
+
+<div class="alert-item">
+
+<b>${l.time || ''}</b>
+
+- ${l.event}
+
+</div>
+
+`;
+
+});
+
+document
+.getElementById("logs")
+.innerHTML = html;
+
+}
+
+
+loadLogs();
+
+setInterval(loadLogs,8000);
+
+/* SIDEBAR */
+function toggleSidebar(){
+
+document
+.getElementById("sidebar")
+.classList
+.toggle("closed");
+
+document
+.getElementById("mainContent")
+.classList
+.toggle("full");
+
+}
+
+/* SECTIONS */
+function showSection(sectionId, btn){
+
+    document.getElementById("liveSection").style.display = "none";
+    document.getElementById("recognizedSection").style.display = "none";
+    document.getElementById("logsSection").style.display = "none";
+    document.getElementById("plateSection").style.display = "none";
+
+    document.getElementById(sectionId).style.display = "block";
+
+    // LIVE
+    if(sectionId === "liveSection"){
+
+        if(plateInterval){
+            clearInterval(plateInterval);
+        }
+
+        faceInterval =
+        setInterval(captureFrame,2000);
+    }
+
+    // PLATE
+    if(sectionId === "plateSection"){
+
+        clearInterval(faceInterval);
+
+        startPlateCamera();
+    }
+
+    document
+    .querySelectorAll(".sidebar button")
+    .forEach(b=>{
+
+        b.classList.remove("active-btn");
+
+    });
+
+    btn.classList.add("active-btn");
+}
+ 
+
+async function startPlateCamera() {
+    try {
+        const plateVideo = document.getElementById("plateVideo");
+
+        if (!plateVideo.srcObject) {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            plateVideo.srcObject = stream;
+            await plateVideo.play();
+        }
+
+        if (plateInterval) clearInterval(plateInterval);
+
+        // كل 180ms (أفضل توازن بين السرعة والأداء)
+        plateInterval = setInterval(scanPlate,500);
+
+        console.log("✅ Plate Detection Started (Stable Mode)");
+
+    } catch (err) {
+        console.error(err);
+        alert("Camera access error");
+    }
+}
+let plateInterval = null;
+let isScanning = false;
+let lastStablePlate = "";
+let lastStableTime = 0;
+let bestBox = null;
+
+async function scanPlate() {
+    if (isScanning) return;
+    isScanning = true;
+
+    try {
+        const video = document.getElementById("plateVideo");
+        const canvas = document.getElementById("plateCanvas");
+        const ctx = canvas.getContext("2d");
+
+        if (!video.videoWidth || !video.videoHeight) {
+            isScanning = false;
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // التقاط الفريم
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.drawImage(video, 0, 0);
+
+        const blob = await new Promise(resolve => 
+            tempCanvas.toBlob(resolve, "image/jpeg", 0.6)
+        );
+
+        let formData = new FormData();
+        formData.append("image", blob);
+
+        const res = await fetch("/detect_plate_live", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        // ==================== رسم المربع ====================
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (data.box) {
+            console.log(data);
+            
+            // حفظ أفضل box
+            bestBox = data.box;
+
+            const now = Date.now();
+
+            // استقرار النتيجة (ما يتغيرش كل شوي)
+            if (data.plate.length >= lastStablePlate.length || now - lastStableTime > 3000) {
+                lastStablePlate = data.plate;
+                lastStableTime = now;
+            }
+
+            // رسم المربع (يبقى مرسوم)
+            ctx.strokeStyle = "#00ff88";
+            ctx.lineWidth = 6;
+            ctx.shadowColor = "#00ff88";
+            ctx.shadowBlur = 20;
+            ctx.strokeRect(bestBox.x, bestBox.y, bestBox.w, bestBox.h);
+
+            // كتابة اللوحة
+            ctx.fillStyle = "#00ff88";
+            ctx.font = "bold 34px Arial";
+            ctx.fillText(lastStablePlate, bestBox.x, bestBox.y - 20);
+        }
+
+        // ==================== تحديث النتيجة ====================
+        const resultDiv = document.getElementById("plateResult");
+
+        if (lastStablePlate) {
+            resultDiv.innerHTML = `
+                <div style="text-align:center; color:#00ff88; font-size:36px; font-weight:700; letter-spacing:3px;">
+                    ${lastStablePlate}
+                </div>
+                <div style="text-align:center; margin-top:10px; color:#00ffcc;">
+                    Confidence: <strong>${(data.confidence * 100).toFixed(1)}%</strong>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div style="text-align:center; color:#ff6666; font-size:24px;">
+                    Waiting for clear plate...
+                </div>
+            `;
+        }
+
+    } catch (e) {
+        console.error(e);
+    }
+
+    isScanning = false;
+}
+/* LOGOUT */
+function logout(){
+
+localStorage.clear();
+
+window.location.href="/";
+
+}
+
+</script>
+
+</body>
+</html>

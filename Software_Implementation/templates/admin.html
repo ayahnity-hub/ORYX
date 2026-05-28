@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ORYX Admin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: #020817;
+        color: white;
+        overflow-x: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(rgba(61,165,255,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(61,165,255,0.04) 1px, transparent 1px);
+        background-size: 50px 50px;
+        opacity: 0.15;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    /* TOPBAR */
+    .topbar {
+        height: 62px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        background: rgba(3,10,20,0.95);
+        border-bottom: 1px solid rgba(61,165,255,0.1);
+        backdrop-filter: blur(12px);
+        z-index: 100;
+    }
+
+    .top-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .hamburger {
+        font-size: 26px;
+        color: white;
+        cursor: pointer;
+    }
+
+    .topbar-logo {
+        height: 38px;
+        filter: drop-shadow(0 0 15px rgba(61,165,255,0.7));
+    }
+
+    .admin-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+        width: 265px;
+        background: linear-gradient(180deg, rgba(3,12,25,0.98), rgba(2,8,18,0.98));
+        border-right: 1px solid rgba(61,165,255,0.1);
+        transition: all 0.4s ease;
+        padding: 20px 14px;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 62px);
+        position: fixed;
+        left: 0;
+        top: 62px;
+        overflow-y: auto;
+        z-index: 90;
+    }
+
+    .sidebar.closed {
+        transform: translateX(-100%);
+    }
+
+    .sidebar-logo {
+        width: 200px;
+        margin: 10px auto 25px auto;
+        display: block;
+    }
+
+    .sidebar button {
+        background: transparent;
+        border: none;
+        color: #EAF4FF;
+        padding: 14px 18px;
+        border-radius: 12px;
+        text-align: left;
+        cursor: pointer;
+        font-size: 15.5px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 6px;
+        transition: 0.3s;
+    }
+
+    .sidebar button:hover,
+    .sidebar button.active-btn {
+        background: linear-gradient(90deg, rgba(30,144,255,0.35), rgba(61,165,255,0.12));
+        color: white;
+    }
+
+    /* MAIN */
+    .main {
+        margin-left: 265px;
+        padding: 30px;
+        transition: all 0.4s ease;
+        min-height: calc(100vh - 62px);
+    }
+
+    .main.full {
+        margin-left: 0;
+    }
+
+    .card {
+        background: rgba(5,12,24,0.95);
+        border: 1px solid rgba(61,165,255,0.15);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 25px;
+        box-shadow: 0 0 30px rgba(61,165,255,0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .card-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #EAF4FF;
+    }
+
+    .add-user-btn {
+        background: linear-gradient(135deg, #1E90FF, #3DA5FF);
+        border: none;
+        color: white;
+        padding: 12px 26px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 12px; text-align: left; }
+    th {
+        color: #61B8FF;
+        font-size: 15px;
+        text-transform: uppercase;
+    }
+    tr { border-bottom: 1px solid rgba(255,255,255,0.08); }
+    td { font-size: 14.5px; color: #DDEBFF; }
+
+    .btn.delete {
+        background: rgba(255,0,0,0.15);
+        color: #ff5b5b;
+        border: 1px solid rgba(255,0,0,0.3);
+        padding: 7px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    /* Form Elements */
+    input, select {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(61,165,255,0.2);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        width: 100%;
+        margin: 8px 0;
+    }
+
+    input::placeholder { color: #888; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="top-left">
+    <div class="hamburger" onclick="toggleSidebar()">☰</div>
+    <img src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}" class="topbar-logo" alt="ORYX">
+  </div>
+  
+  <div class="admin-profile">
+    <i class="fas fa-user-circle" style="font-size:24px;"></i>
+    <span>Admin</span> 
+    <i class="fas fa-chevron-down"></i>
+  </div>
+</div>
+
+<!-- CONTAINER -->
+<div class="container">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <img src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}" class="sidebar-logo" alt="ORYX">
+
+  <button class="active-btn" onclick="showSection('users')">
+    <i class="fas fa-house"></i> Dashboard
+  </button>
+  <button onclick="showSection('users')">
+    <i class="fas fa-users"></i> Users
+  </button>
+  <button onclick="showSection('add')">
+    <i class="fas fa-user-plus"></i> Add User
+  </button>
+  <button onclick="showSection('users')">
+    <i class="fas fa-user-shield"></i> Manage Officers
+  </button>
+  <button onclick="showSection('logs')">
+    <i class="fas fa-clipboard-list"></i> Incident Logs
+  </button>
+  <button onclick="showSection('shift')">
+    <i class="fas fa-calendar-days"></i> Manage Shifts
+  </button>
+  <button onclick="showSection('map')">
+    <i class="fas fa-location-dot"></i> Monitor Patrol
+  </button>
+
+  <div style="margin-top: auto; padding-top: 20px;">
+    <button><i class="fas fa-gear"></i> Settings</button>
+    <button onclick="logout()"><i class="fas fa-right-from-bracket"></i> Logout</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainContent">
+
+  <!-- USERS -->
+  <div id="usersSection" class="card">
+    <div class="section-header">
+      <h3 class="card-title">USERS</h3>
+      <button class="add-user-btn" onclick="showSection('add')">+ ADD USER</button>
+    </div>
+    <table id="usersTable"></table>
+  </div>
+
+  <!-- ADD USER -->
+  <div id="addSection" class="card" style="display:none;">
+    <h3>Add User</h3>
+    <input id="username" placeholder="Username">
+    <input id="email" placeholder="Email">
+    <input id="password" placeholder="Password" type="password">
+    <select id="role">
+      <option value="officer">Officer</option>
+      <option value="police_admin">Police Admin</option>
+      <option value="oryx_admin">Admin</option>
+    </select>
+    <button onclick="addUser()" style="margin-top:15px; padding:12px 24px;">Add</button>
+  </div>
+
+  <!-- INCIDENT LOGS -->
+  <div id="logsSection" class="card" style="display:none;">
+    <h3 class="card-title">INCIDENT LOGS</h3>
+    <table id="logsTable"></table>
+  </div>
+
+  <!-- MANAGE SHIFTS -->
+  <div id="shiftSection" class="card" style="display:none;">
+    <h3 class="card-title">Manage Shifts</h3>
+    <select id="shiftUser"></select>
+    <select id="shiftDay">
+      <option>Sunday</option><option>Monday</option><option>Tuesday</option>
+      <option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option>
+    </select>
+    <input id="shiftStart" placeholder="Start Hour">
+    <select id="startPeriod"><option>AM</option><option>PM</option></select>
+    <input id="shiftEnd" placeholder="End Hour">
+    <select id="endPeriod"><option>AM</option><option>PM</option></select>
+    <button onclick="saveShift()" style="margin-top:15px; padding:12px 24px; background:#3DA5FF; border:none; border-radius:8px;">Save Shift</button>
+    
+    <hr style="margin:25px 0;">
+    <h4>Shifts Table</h4>
+    <table id="shiftTable"></table>
+  </div>
+
+  <!-- MAP -->
+  <div id="mapSection" class="card" style="display:none;">
+    <h3>Live Patrol Map</h3>
+    <div id="map" style="height:480px; border-radius:12px;"></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ====================== FUNCTIONS ======================
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const main = document.getElementById('mainContent');
+    sidebar.classList.toggle('closed');
+    main.classList.toggle('full');
+}
+
+function showSection(section) {
+    document.querySelectorAll('.card').forEach(c => c.style.display = 'none');
+    
+    if(section === 'users') { document.getElementById('usersSection').style.display = 'block'; loadUsers(); }
+    if(section === 'add') document.getElementById('addSection').style.display = 'block';
+    if(section === 'logs') { document.getElementById('logsSection').style.display = 'block'; loadLogs(); }
+    if(section === 'shift') { 
+        document.getElementById('shiftSection').style.display = 'block'; 
+        loadShiftUsers(); 
+        loadShifts(); 
+    }
+    if(section === 'map') { 
+        document.getElementById('mapSection').style.display = 'block'; 
+        setTimeout(() => map.invalidateSize(), 300); 
+        loadLocations(); 
+    }
+}
+
+function logout(){
+  localStorage.clear();
+  window.location.href = "/";
+}
+
+/* USERS */
+async function loadUsers(){
+  const res = await fetch("/users");
+  const data = await res.json();
+  let table = `<tr><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr>`;
+  data.forEach(u=>{
+    table += `<tr>
+      <td>${u.username || 'N/A'}</td>
+      <td>${u.email}</td>
+      <td>${u.role}</td>
+      <td><button class="btn delete" onclick="deleteUser('${u.email}')">Delete</button></td>
+    </tr>`;
+  });
+  document.getElementById('usersTable').innerHTML = table;
+}
+
+async function addUser(){
+  await fetch("/add_user",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      username: document.getElementById('username').value,
+      email: document.getElementById('email').value,
+      password: document.getElementById('password').value,
+      role: document.getElementById('role').value
+    })
+  });
+  alert("User Added Successfully");
+  showSection('users');
+}
+
+async function deleteUser(email){
+  await fetch("/delete_user",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email})
+  });
+  loadUsers();
+}
+
+/* SHIFTS */
+async function loadShiftUsers(){
+  const res = await fetch("/users");
+  const data = await res.json();
+  let html = "<option value=''>Select User</option>";
+  data.forEach(u => html += `<option value="${u.email}">${u.email}</option>`);
+  document.getElementById("shiftUser").innerHTML = html;
+}
+
+async function loadShifts(){
+  const res = await fetch("/get_shifts");
+  const data = await res.json();
+  let table = `<tr><th>User</th><th>Day</th><th>Shift</th></tr>`;
+  data.forEach(s=>{
+    table += `<tr><td>${s.email}</td><td>${s.day}</td><td>${s.start} ${s.period_start} - ${s.end} ${s.period_end}</td></tr>`;
+  });
+  document.getElementById('shiftTable').innerHTML = table;
+}
+
+async function saveShift(){
+  const user = document.getElementById("shiftUser").value;
+  if(!user) { alert("Please select a user"); return; }
+
+  await fetch("/add_shift",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email: user,
+      day: document.getElementById("shiftDay").value,
+      start: document.getElementById("shiftStart").value,
+      end: document.getElementById("shiftEnd").value,
+      period_start: document.getElementById("startPeriod").value,
+      period_end: document.getElementById("endPeriod").value
+    })
+  });
+  alert("Shift Saved ✅");
+  loadShifts();
+}
+
+/* LOGS */
+async function loadLogs(){
+  const res = await fetch("/logs");
+  const data = await res.json();
+  let table = `<tr><th>TIME</th><th>USER</th><th>IP</th><th>EVENT</th></tr>`;
+  let mini = "";
+  data.forEach(l=>{
+    table += `<tr><td>${l.time}</td><td>${l.username}</td><td>${l.ip}</td><td>${l.event}</td></tr>`;
+    mini += `<div>${l.time} - ${l.event}</div>`;
+  });
+  document.getElementById('logsTable').innerHTML = table;
+  if(document.getElementById('miniLogs')) document.getElementById('miniLogs').innerHTML = mini;
+}
+
+/* MAP */
+let map = L.map('map').setView([31.95, 35.91], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let markers = [];
+
+function clearMarkers(){
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+}
+
+async function loadLocations(){
+  clearMarkers();
+  const res = await fetch("/get_locations");
+  const data = await res.json();
+  data.forEach(loc => {
+    let m = L.marker([loc.lat, loc.lng]).addTo(map)
+      .bindPopup(loc.user + " (Active)");
+    markers.push(m);
+  });
+}
+
+setInterval(loadLocations, 5000);
+
+/* INIT */
+window.onload = () => {
+    loadUsers();
+    loadLogs();
+    document.querySelector('.sidebar button').classList.add('active-btn');
+};
+</script>
+</body>
+</html>
