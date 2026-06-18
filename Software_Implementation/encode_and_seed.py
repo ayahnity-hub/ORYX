@@ -4,11 +4,9 @@ import cv2
 from pymongo import MongoClient
 from insightface.app import FaceAnalysis
 
-# 🔗 MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client["oryx_db"]
 
-# 🔥 تحميل مودل InsightFace
 face_app = FaceAnalysis(name='buffalo_l')
 
 face_app.prepare(
@@ -37,7 +35,7 @@ for i, file in enumerate(os.listdir(DATASET_PATH)):
         faces = face_app.get(img)
 
         if len(faces) == 0:
-            print(f"❌ No face found: {file}")
+            print(f" No face found: {file}")
             continue
 
         embedding = faces[0].embedding.tolist()
@@ -55,16 +53,15 @@ for i, file in enumerate(os.listdir(DATASET_PATH)):
 
         citizens.append(citizen)
 
-        print(f"✅ Processed {file}")
+        print(f"Processed {file}")
 
     except Exception as e:
-        print("❌ Error:", file, e)
+        print("Error:", file, e)
 
-# 🔥 حذف الداتا القديمة
 db.citizens.delete_many({})
 
-# 🔥 إدخال الداتا الجديدة
+
 if citizens:
     db.citizens.insert_many(citizens)
 
-print("🔥 DONE:", len(citizens))
+print(" DONE:", len(citizens))
