@@ -31,7 +31,7 @@
         z-index: -1;
     }
 
-    /* TOPBAR */
+  
     .topbar {
         height: 62px;
         display: flex;
@@ -69,7 +69,7 @@
         cursor: pointer;
     }
 
-    /* SIDEBAR */
+
     .sidebar {
         width: 265px;
         background: linear-gradient(180deg, rgba(3,12,25,0.98), rgba(2,8,18,0.98));
@@ -118,7 +118,6 @@
         color: white;
     }
 
-    /* MAIN */
     .main {
         margin-left: 265px;
         padding: 30px;
@@ -182,7 +181,7 @@
         cursor: pointer;
     }
 
-    /* Form Elements */
+  
     input, select {
         background: rgba(255,255,255,0.08);
         border: 1px solid rgba(61,165,255,0.2);
@@ -198,7 +197,6 @@
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="top-left">
     <div class="hamburger" onclick="toggleSidebar()">☰</div>
@@ -212,10 +210,8 @@
   </div>
 </div>
 
-<!-- CONTAINER -->
 <div class="container">
 
-<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
   <img src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}" class="sidebar-logo" alt="ORYX">
 
@@ -247,10 +243,9 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main" id="mainContent">
 
-  <!-- USERS -->
+  
   <div id="usersSection" class="card">
     <div class="section-header">
       <h3 class="card-title">USERS</h3>
@@ -259,7 +254,7 @@
     <table id="usersTable"></table>
   </div>
 
-  <!-- ADD USER -->
+  
   <div id="addSection" class="card" style="display:none;">
     <h3>Add User</h3>
     <input id="username" placeholder="Username">
@@ -273,13 +268,11 @@
     <button onclick="addUser()" style="margin-top:15px; padding:12px 24px;">Add</button>
   </div>
 
-  <!-- INCIDENT LOGS -->
   <div id="logsSection" class="card" style="display:none;">
     <h3 class="card-title">INCIDENT LOGS</h3>
     <table id="logsTable"></table>
   </div>
 
-  <!-- MANAGE SHIFTS -->
   <div id="shiftSection" class="card" style="display:none;">
     <h3 class="card-title">Manage Shifts</h3>
     <select id="shiftUser"></select>
@@ -298,7 +291,7 @@
     <table id="shiftTable"></table>
   </div>
 
-  <!-- MAP -->
+  
   <div id="mapSection" class="card" style="display:none;">
     <h3>Live Patrol Map</h3>
     <div id="map" style="height:480px; border-radius:12px;"></div>
@@ -308,7 +301,6 @@
 </div>
 
 <script>
-// ====================== FUNCTIONS ======================
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -340,7 +332,6 @@ function logout(){
   window.location.href = "/";
 }
 
-/* USERS */
 async function loadUsers(){
   const res = await fetch("/users");
   const data = await res.json();
@@ -380,7 +371,6 @@ async function deleteUser(email){
   loadUsers();
 }
 
-/* SHIFTS */
 async function loadShiftUsers(){
   const res = await fetch("/users");
   const data = await res.json();
@@ -419,7 +409,6 @@ async function saveShift(){
   loadShifts();
 }
 
-/* LOGS */
 async function loadLogs(){
   const res = await fetch("/logs");
   const data = await res.json();
@@ -433,7 +422,6 @@ async function loadLogs(){
   if(document.getElementById('miniLogs')) document.getElementById('miniLogs').innerHTML = mini;
 }
 
-/* MAP */
 let map = L.map('map').setView([31.95, 35.91], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let markers = [];
@@ -444,19 +432,28 @@ function clearMarkers(){
 }
 
 async function loadLocations(){
+
   clearMarkers();
+
   const res = await fetch("/get_locations");
   const data = await res.json();
+
+  console.log(data);
+
   data.forEach(loc => {
-    let m = L.marker([loc.lat, loc.lng]).addTo(map)
-      .bindPopup(loc.user + " (Active)");
+
+    let m = L.marker([loc.lat, loc.lng])
+      .addTo(map)
+      .bindPopup(loc.email + " (Active)");
+
     markers.push(m);
+
   });
+
 }
 
 setInterval(loadLocations, 5000);
 
-/* INIT */
 window.onload = () => {
     loadUsers();
     loadLogs();
