@@ -93,7 +93,7 @@
         color: white;
     }
 
-    /* MAIN */
+   
     .main {
         margin-left: 265px;
         padding: 25px;
@@ -117,7 +117,6 @@
         font-size: 20px;
     }
 
-    /* Stats */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -194,7 +193,7 @@
 </head>
 <body>
 
-<!-- TOPBAR -->
+
 <div class="topbar">
   <div class="top-left">
     <div class="hamburger" onclick="toggleSidebar()">☰</div>
@@ -208,7 +207,7 @@
   </div>
 </div>
 
-<!-- SIDEBAR -->
+
 <div class="sidebar" id="sidebar">
   <img src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}" class="sidebar-logo" alt="ORYX">
 
@@ -226,10 +225,8 @@
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main" id="mainContent">
 
-  <!-- Dashboard -->
   <div id="dashboardSection" class="card">
     <h3>Dashboard</h3>
     <p>Welcome back, Officer. All systems are operational.</p>
@@ -259,7 +256,6 @@
     </div>
   </div>
 
-  <!-- Patrol Officer -->
   <div id="patrolSection" class="card" style="display:none;">
     <h3>Patrol Officer</h3>
     <img id="suspectImg" src="" alt="Suspect">
@@ -273,32 +269,27 @@
     </div>
   </div>
 
-  <!-- GPS -->
   <div id="mapSection" class="card" style="display:none;">
     <h3>GPS Status</h3>
     <div id="map"></div>
     <p id="coords" style="margin-top:15px;"></p>
   </div>
 
-  <!-- Alerts -->
   <div id="alertsSection" class="card" style="display:none;">
     <h3>Live Alerts</h3>
     <div id="alertsBox"></div>
   </div>
 
-  <!-- System Alerts -->
   <div id="systemSection" class="card" style="display:none;">
     <h3>System Alerts</h3>
     <div id="systemAlerts"></div>
   </div>
 
-  <!-- Incident Logs -->
   <div id="logsSection" class="card" style="display:none;">
     <h3>Incident Logs</h3>
     <div id="logs"></div>
   </div>
 
-  <!-- Add Citizen -->
   <div id="citizenSection" class="card" style="display:none;">
     <h3>Add Citizen</h3>
     <input id="c_name" placeholder="Full Name">
@@ -318,40 +309,102 @@ function toggleSidebar(){
 }
 
 function showSection(sectionId, btn){
-  document.querySelectorAll('.card').forEach(card => card.style.display = 'none');
+
+  document.querySelectorAll('.card').forEach(card => {
+      card.style.display = 'none';
+  });
+
   document.getElementById(sectionId).style.display = 'block';
 
-  document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active-btn'));
+  if(sectionId === "mapSection"){
+      setTimeout(()=>{
+          map.invalidateSize();
+      },300);
+  }
+
+  document.querySelectorAll('.sidebar button')
+      .forEach(b => b.classList.remove('active-btn'));
+
   if(btn) btn.classList.add('active-btn');
 }
 
-// ====================== DYNAMIC DASHBOARD ======================
 let alertsCount = 12;
 let officersOnline = 4;
 
-function updateDashboardStats(){
-  document.getElementById('alertsToday').textContent = alertsCount;
-  document.getElementById('officersOnline').textContent = officersOnline;
+async function updateDashboardStats(){
+
+const res = await fetch("/dashboard_stats");
+const data = await res.json();
+
+document.getElementById("officersOnline").innerText =
+data.online;
+
+document.getElementById("alertsToday").innerText =
+data.alerts;
+document.getElementById("activePatrols").innerText =
+data.patrols;
+document.getElementById("areaCoverage").innerText =
+data.coverage + "%";
+
 }
 
-// ====================== FUNCTIONS ======================
 function logout(){
   localStorage.clear();
   window.location.href = "/";
 }
 
-/* MAP */
 let map = L.map('map').setView([31.95,35.91],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+setTimeout(()=>{
+    map.invalidateSize();
+},1000);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+).addTo(map);
+
 let marker;
 
-async function loadLocation(){
-  const res = await fetch("/get_my_location");
-  const data = await res.json();
-  if(marker) map.removeLayer(marker);
-  marker = L.marker([data.lat,data.lng]).addTo(map);
-  document.getElementById('coords').innerText = `Lat: ${data.lat} | Lng: ${data.lng}`;
+function sendLocation(){
+
+navigator.geolocation.getCurrentPosition(
+
+async(pos)=>{
+
+const lat = pos.coords.latitude;
+const lng = pos.coords.longitude;
+console.log("GPS Accuracy:", pos.coords.accuracy);
+
+if(marker){
+map.removeLayer(marker);
 }
+
+marker = L.marker([lat,lng]).addTo(map);
+
+map.setView([lat,lng],15);
+
+document.getElementById("coords").innerText =
+`Lat: ${lat} | Lng: ${lng}`;
+
+await fetch("/location",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+email: localStorage.getItem("email"),
+lat: lat,
+lng: lng
+})
+});
+
+}
+
+);
+
+}
+
+sendLocation();
+
 
 /* SUSPECT */
 async function loadSuspect(){
@@ -383,7 +436,6 @@ async function loadSystemAlerts(){
   document.getElementById("systemAlerts").innerHTML = html;
 }
 
-/* ADD CITIZEN */
 async function addCitizen(){
   await fetch("/add_citizen",{
     method:"POST",
@@ -398,7 +450,6 @@ async function addCitizen(){
   alert("Citizen Added ✅");
 }
 
-/* LOGS & Recent Activity */
 async function loadLogs(){
   const res = await fetch("/logs");
   const data = await res.json();
@@ -416,7 +467,6 @@ async function loadLogs(){
   document.getElementById("recentActivity").innerHTML = html || "<p style='opacity:0.6'>No recent activity</p>";
 }
 
-/* ALERTS */
 async function loadAlerts(){
   const res = await fetch("/alerts");
   const data = await res.json();
@@ -471,21 +521,24 @@ function ignoreAlert(){
   });
 }
 
-/* AUTO REFRESH */
-setInterval(loadLocation,5000);
+setInterval(sendLocation,5000);
 setInterval(loadSuspect,7000);
 setInterval(loadAlerts,4000);
 setInterval(loadSystemAlerts,6000);
 setInterval(loadLogs,5000);
 
-/* INIT */
+
 window.onload = () => {
-  loadLocation();
+
+  sendLocation();
+
   loadSuspect();
   loadAlerts();
   loadSystemAlerts();
   loadLogs();
+
   document.getElementById('dashboardSection').style.display = 'block';
+
   updateDashboardStats();
 };
 </script>
