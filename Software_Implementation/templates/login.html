@@ -22,7 +22,6 @@
   color:white;
 }
 
-/* خلفية خفيفة */
 body::before{
   content:"";
   position:absolute;
@@ -36,7 +35,6 @@ body::before{
   opacity:0.15;
 }
 
-/* LEFT PANEL */
 .container{
 
   width:520px;
@@ -49,7 +47,6 @@ body::before{
   align-items:center;
 }
 
-/* logo */
 .logo{
 
   width:520px;
@@ -71,7 +68,6 @@ body::before{
   50%{transform:translateY(-10px);}
   100%{transform:translateY(0px);}
 }
-/* login card */
 .login-box{
 
   width:100%;
@@ -97,7 +93,6 @@ body::before{
     inset 0 0 30px rgba(255,255,255,0.03);
 }
 
-/* inputs */
 input{
   width:100%;
   padding:16px;
@@ -127,7 +122,6 @@ input:focus{
   background:rgba(255,255,255,0.06);
 }
 
-/* button */
 button{
   width:100%;
   padding:16px;
@@ -162,7 +156,6 @@ button:hover{
     0 0 18px rgba(61,165,255,0.6);
 }
 
-/* links */
 .links{
   margin-top:16px;
 
@@ -181,10 +174,9 @@ button:hover{
 
 <div class="container">
 
-  <!-- 🔥 اللوجو -->
+
   <img src="{{ url_for('static', filename='ChatGPT_Image_May_7__2026__05_03_19_PM-removebg-preview.png') }}" class="logo">
 
-  <!-- 🔥 الفورم -->
   <div class="login-box">
 
     <input type="email" id="email" placeholder="Email">
@@ -219,7 +211,7 @@ async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const response = await fetch("http://127.0.0.1:5000/login", {
+  const response = await fetch("/login", {
 
     method: "POST",
 
@@ -259,7 +251,7 @@ async function verifyOTP() {
 
   const email = localStorage.getItem("temp_email");
 
-  const response = await fetch("http://127.0.0.1:5000/verify_otp", {
+  const response = await fetch("/verify_otp", {
 
     method: "POST",
 
