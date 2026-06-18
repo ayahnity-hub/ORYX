@@ -38,7 +38,6 @@ pointer-events:none;
 z-index:-1;
 }
 
-/* TOPBAR */
 .topbar{
 height:72px;
 display:flex;
@@ -79,7 +78,6 @@ font-size:18px;
 font-weight:600;
 }
 
-/* SIDEBAR */
 .sidebar{
 width:280px;
 background:
@@ -153,7 +151,6 @@ font-size:18px;
 width:22px;
 }
 
-/* MAIN */
 .main{
 margin-left:280px;
 padding:25px;
@@ -165,7 +162,6 @@ min-height:calc(100vh - 72px);
 margin-left:0;
 }
 
-/* GRID */
 .main-layout{
 display:grid;
 grid-template-columns:320px 1fr 320px;
@@ -173,7 +169,6 @@ gap:24px;
 align-items:start;
 }
 
-/* CARD */
 .card{
 background:rgba(5,12,24,0.96);
 border:1px solid rgba(61,165,255,0.15);
@@ -185,7 +180,6 @@ box-shadow:
 inset 0 0 18px rgba(61,165,255,0.03);
 }
 
-/* TITLES */
 .card h3{
 color:#EAF4FF;
 margin-bottom:22px;
@@ -193,7 +187,7 @@ font-size:28px;
 font-weight:700;
 }
 
-/* PERSON */
+
 #personCard{
 background:rgba(255,255,255,0.03);
 padding:18px;
@@ -225,7 +219,6 @@ font-size:14px !important;
 opacity:0.85;
 }
 
-/* STATUS */
 .status{
 padding:8px 14px;
 border-radius:10px;
@@ -245,7 +238,6 @@ background:#00ffc8;
 color:black;
 }
 
-/* BUTTONS */
 .btn{
 padding:12px 18px;
 border:none;
@@ -279,7 +271,6 @@ background:#222b3d;
 color:white;
 }
 
-/* CAMERA */
 .camera-box{
 position:relative;
 background:#000;
@@ -320,14 +311,13 @@ font-size:15px;
 line-height:1.7;
 }
 
-/* RIGHT PANEL */
 .right-panel{
 display:flex;
 flex-direction:column;
 gap:22px;
 }
 
-/* RESPONSIVE */
+
 @media(max-width:1300px){
 
 .main-layout{
@@ -353,7 +343,7 @@ transform:translateX(0);
 
 <body>
 
-<!-- TOPBAR -->
+
 <div class="topbar">
 
 <div class="top-left">
@@ -381,7 +371,7 @@ class="topbar-logo">
 
 </div>
 
-<!-- SIDEBAR -->
+
 <div class="sidebar" id="sidebar">
 
 <img
@@ -506,7 +496,6 @@ Ignore
 
 </div>
 
-<!-- CENTER -->
 <div class="card">
 
 <h3>Live Camera</h3>
@@ -521,7 +510,6 @@ Ignore
 
 </div>
 
-<!-- RIGHT -->
 <div class="right-panel">
 
 <div class="card">
@@ -538,7 +526,7 @@ Ignore
 
 </div>
 
-<!-- RECOGNIZED -->
+
 <div id="recognizedSection"
 class="card"
 style="display:none;">
@@ -549,7 +537,7 @@ style="display:none;">
 
 </div>
 
-<!-- LOGS -->
+
 <div id="logsSection"
 class="card"
 style="display:none;">
@@ -560,7 +548,7 @@ style="display:none;">
 
 </div>
 
-<!-- PLATE DETECTION -->
+
 <div id="plateSection"
 class="card"
 style="display:none;">
@@ -609,13 +597,13 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 
-/* CAMERA */
+
 navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
 video.srcObject = stream;
 });
 
-/* DETECTION LOOP */
+
 let faceInterval =
 setInterval(captureFrame, 300);
 let processing = false;
@@ -647,25 +635,24 @@ ctx.clearRect(0,0,canvas.width,canvas.height);
 
 if(data.face){
 
-    // 🔥 تحديد اللون حسب الحالة
     if(data.risk === "WANTED"){
 
-        ctx.strokeStyle = "#ff3b3b"; // أحمر
+        ctx.strokeStyle = "#ff3b3b"; 
 
     }else if(data.risk === "SAFE"){
         ctx.shadowColor = "#00ff88";
         ctx.shadowBlur = 25;
-        ctx.strokeStyle = "#00ff88"; // أخضر
+        ctx.strokeStyle = "#00ff88"; 
 
     }else{
 
-        ctx.strokeStyle = "#ffd500"; // أصفر UNKNOWN
+        ctx.strokeStyle = "#ffd500"; 
 
     }
 
     ctx.lineWidth = 4;
 
-    // 🔥 رسم المربع
+    
     ctx.strokeRect(
         data.face.x,
         data.face.y,
@@ -673,7 +660,7 @@ if(data.face){
         data.face.h
     );
 
-    // 🔥 اسم الشخص فوق الوجه
+  
     ctx.font = "18px Poppins";
     ctx.fillStyle = ctx.strokeStyle;
 
@@ -690,7 +677,6 @@ if(data.face){
 
 }
 
-/* UPDATE INFO */
 function updateInfo(data){
 
 const card = document.getElementById("personCard");
@@ -741,7 +727,6 @@ card.style.display = "none";
 addRecognizedPerson(data);
 }
 
-/* ALERTS */
 async function loadSystemAlerts(){
 
 const res = await fetch("/system_alerts");
@@ -766,15 +751,12 @@ loadSystemAlerts();
 
 setInterval(loadSystemAlerts,5000);
 
-/* RECOGNIZED */
-/* REAL RECOGNIZED PERSONS */
 let recognizedPersons = [];
 
 function addRecognizedPerson(data){
 
 if(!data.name) return;
 
-/* منع التكرار */
 const exists = recognizedPersons.find(
 p => p.name === data.name
 );
@@ -796,7 +778,6 @@ renderRecognizedPersons();
 
 }
 
-/* RENDER */
 function renderRecognizedPersons(){
 
 let html = "";
@@ -914,7 +895,6 @@ No recognized persons yet
 
 }
 
-/* CONFIRM */
 function confirmPerson(index){
 
 alert(
@@ -923,8 +903,6 @@ recognizedPersons[index].name +
 );
 
 }
-
-/* IGNORE */
 function ignorePerson(index){
 
 recognizedPersons.splice(index,1);
@@ -933,7 +911,6 @@ renderRecognizedPersons();
 
 }
 
-/* LOGS */
 async function loadLogs(){
 
 const res = await fetch("/logs");
@@ -969,7 +946,6 @@ loadLogs();
 
 setInterval(loadLogs,8000);
 
-/* SIDEBAR */
 function toggleSidebar(){
 
 document
@@ -984,7 +960,7 @@ document
 
 }
 
-/* SECTIONS */
+
 function showSection(sectionId, btn){
 
     document.getElementById("liveSection").style.display = "none";
@@ -994,7 +970,6 @@ function showSection(sectionId, btn){
 
     document.getElementById(sectionId).style.display = "block";
 
-    // LIVE
     if(sectionId === "liveSection"){
 
         if(plateInterval){
@@ -1005,7 +980,7 @@ function showSection(sectionId, btn){
         setInterval(captureFrame,2000);
     }
 
-    // PLATE
+    
     if(sectionId === "plateSection"){
 
         clearInterval(faceInterval);
@@ -1037,7 +1012,7 @@ async function startPlateCamera() {
 
         if (plateInterval) clearInterval(plateInterval);
 
-        // كل 180ms (أفضل توازن بين السرعة والأداء)
+        
         plateInterval = setInterval(scanPlate,500);
 
         console.log("✅ Plate Detection Started (Stable Mode)");
@@ -1070,7 +1045,6 @@ async function scanPlate() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // التقاط الفريم
         const tempCanvas = document.createElement("canvas");
         tempCanvas.width = video.videoWidth;
         tempCanvas.height = video.videoHeight;
@@ -1097,31 +1071,30 @@ async function scanPlate() {
         if (data.box) {
             console.log(data);
             
-            // حفظ أفضل box
+            
             bestBox = data.box;
 
             const now = Date.now();
 
-            // استقرار النتيجة (ما يتغيرش كل شوي)
+           
             if (data.plate.length >= lastStablePlate.length || now - lastStableTime > 3000) {
                 lastStablePlate = data.plate;
                 lastStableTime = now;
             }
 
-            // رسم المربع (يبقى مرسوم)
             ctx.strokeStyle = "#00ff88";
             ctx.lineWidth = 6;
             ctx.shadowColor = "#00ff88";
             ctx.shadowBlur = 20;
             ctx.strokeRect(bestBox.x, bestBox.y, bestBox.w, bestBox.h);
 
-            // كتابة اللوحة
+           
             ctx.fillStyle = "#00ff88";
             ctx.font = "bold 34px Arial";
             ctx.fillText(lastStablePlate, bestBox.x, bestBox.y - 20);
         }
 
-        // ==================== تحديث النتيجة ====================
+        
         const resultDiv = document.getElementById("plateResult");
 
         if (lastStablePlate) {
@@ -1147,7 +1120,7 @@ async function scanPlate() {
 
     isScanning = false;
 }
-/* LOGOUT */
+
 function logout(){
 
 localStorage.clear();
