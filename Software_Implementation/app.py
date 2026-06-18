@@ -12,46 +12,38 @@ from scipy.spatial.distance import cosine
 from ultralytics import YOLO
 import easyocr
 
-# LOAD MODEL
+
 
 app = Flask(__name__)
 
-# PLATE MODEL
 plate_model = YOLO("best.pt")
 
-# OCR
-# OCR Reader
-plate_reader = easyocr.Reader(['en', 'ar'], gpu=False)  
 
+reader = easyocr.Reader(['en'])
 
-
-# EMAIL CONFIGURATION
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 
-app.config['MAIL_USERNAME'] = '***********'
-app.config['MAIL_PASSWORD'] = '**************'
+app.config['MAIL_USERNAME'] = 'ayahnity@gmail.com'
+app.config['MAIL_PASSWORD'] = 'hltr ufws ixnu rmmd'
 
 mail = Mail(app)
 
-# 🔗 MongoDB Connection
 client = MongoClient("mongodb://localhost:27017/")
 db = client["oryx_db"]
-# 🔥 INSIGHTFACE MODEL
+
 face_app = FaceAnalysis(name='buffalo_l')
 
 face_app.prepare(
     ctx_id=0,
-    det_size=(640,640)
+    det_size=(320,320)
 )
 
-# 🟢 الصفحة الرئيسية
 @app.route('/')
 def home():
     return render_template("login.html")
 
-# 🧑‍💻 Register API
 @app.route('/register', methods=['POST'])
 
 def register():
@@ -68,7 +60,7 @@ def register():
         "username": data.get("username"),
         "email": data.get("email"),
         "password": hashed_password,
-        "role": "officer"  # 🔥 default role
+        "role": "officer"  
     }
 
     db.users.insert_one(user)
@@ -91,7 +83,7 @@ def login():
     if not user:
         return jsonify({"message": "User not found"}), 401
 
-    # تحقق كلمة المرور
+
     if not bcrypt.checkpw(data["password"].encode('utf-8'), user["password"]):
         return jsonify({"message": "Wrong password"}), 401
     
@@ -104,10 +96,9 @@ def login():
     "status": "SUCCESS"
 })
 
-    # 🔥 اليوم الحالي
+    
     today = datetime.now().strftime("%A")
 
-    # 🔥 جيب الشفت
     shift = db.shifts.find_one({
         "email": user["email"],
         "day": today
@@ -116,7 +107,7 @@ def login():
     if not shift:
         return jsonify({"message": "No shift today"}), 403
 
-    # 🔥 تحويل الوقت
+    
     now = datetime.now().hour
 
     start = int(shift["start"])
@@ -127,27 +118,24 @@ def login():
     if shift["period_end"] == "PM" and end != 12:
         end += 12
 
-    # 🔥 التحقق
+    
     if not (start <= now <= end):
         return jsonify({"message": "Not your shift time"}), 403
-    
-    # GENERATE OTP
+ 
     otp = random.randint(100000, 999999)
 
     print("OTP =", otp)
 
-# DELETE OLD OTP
     db.otps.delete_many({
     "email": user["email"]
 })
 
-# SAVE OTP
+
     db.otps.insert_one({
     "email": user["email"],
     "otp": str(otp)
 })
 
-# SEND EMAIL
     msg = Message(
     "ORYX Verification Code",
     sender=app.config['MAIL_USERNAME'],
@@ -165,96 +153,192 @@ def login():
     return jsonify({
     "message": "OTP sent"
 })
+last_plate = ""
+last_box = None
+
+import time
+import base64
+
 @app.route("/detect_plate_live", methods=["POST"])
 def detect_plate_live():
+
+    global last_plate, last_box
+
     try:
+
         file = request.files["image"]
-        path = "plate_temp.jpg"
-        file.save(path)
 
-        frame = cv2.imread(path)
+        
+        file_bytes = np.frombuffer(
+            file.read(),
+            np.uint8
+        )
+
+        frame = cv2.imdecode(
+            file_bytes,
+            cv2.IMREAD_COLOR
+        )
+
         if frame is None:
-            return {"plate": "No Plate", "confidence": 0, "box": None}
 
-        # حفظ الأبعاد الأصلية
-        orig_h, orig_w = frame.shape[:2]
-
-        # Resize للكشف فقط
-        input_frame = cv2.resize(frame, (1280, 720))
+            return {
+                "plate": last_plate or "No Frame",
+                "confidence": 0,
+                "box": last_box
+            }
 
         results = plate_model.predict(
-            source=input_frame,
-            conf=0.18,
+            source=frame,
+            conf=0.25,
             imgsz=640,
             verbose=False
         )
 
-        best_plate = "No Plate"
-        best_conf = 0
+        best_plate = ""
         best_box = None
 
+        
         for r in results:
-            for box in r.boxes:
-                conf = float(box.conf[0])
-                if conf < best_conf:
+
+            boxes = r.boxes.xyxy.cpu().numpy()
+
+            for box in boxes:
+
+                x1, y1, x2, y2 = map(int, box)
+
+                best_box = {
+                    "x": x1,
+                    "y": y1,
+                    "w": x2 - x1,
+                    "h": y2 - y1
+                }
+
+               
+                plate = frame[y1:y2, x1:x2]
+
+                if plate.size == 0:
                     continue
 
-                # إحداثيات على الصورة المُصغرة (1280x720)
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-
-                if (x2 - x1) < 70 or (y2 - y1) < 25:
-                    continue
-
-                # ================== تصحيح الإحداثيات للصورة الأصلية ==================
-                scale_x = orig_w / 1280
-                scale_y = orig_h / 720
-
-                x1 = int(x1 * scale_x)
-                y1 = int(y1 * scale_y)
-                x2 = int(x2 * scale_x)
-                y2 = int(y2 * scale_y)
-
-                best_conf = conf
-                best_box = {"x": x1, "y": y1, "w": x2-x1, "h": y2-y1}
-
-                # Crop من الصورة الأصلية
-                h, w = y2 - y1, x2 - x1
-                plate_crop = frame[
-                    max(0, y1 + int(h*0.10)): min(orig_h, y2 - int(h*0.08)),
-                    max(0, x1 + int(w*0.05)): min(orig_w, x2 - int(w*0.05))
-                ]
-
-                if plate_crop.size == 0:
-                    continue
-
-                # معالجة خفيفة وسريعة
-                gray = cv2.cvtColor(plate_crop, cv2.COLOR_BGR2GRAY)
-                gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
                 
-                # OCR
-                ocr_results = plate_reader.readtext(
-                    gray, detail=0, allowlist='0123456789-', 
-                    width_ths=0.7, height_ths=0.7
+                plate_res = cv2.resize(
+                    plate,
+                    None,
+                    fx=4,
+                    fy=4,
+                    interpolation=cv2.INTER_CUBIC
                 )
 
-                if ocr_results:
-                    text = ''.join(ocr_results)
-                    text = ''.join(c for c in text if c.isdigit() or c == '-')
-                    text = text.strip()
+                
+                gray = cv2.cvtColor(
+                    plate_res,
+                    cv2.COLOR_BGR2GRAY
+                )
 
-                    if len(text) >= 4:
-                        best_plate = text
-                        print(f"✅ Plate: {best_plate} | Conf: {conf:.2f}")
+                gray = cv2.GaussianBlur(
+                    gray,
+                    3
+                )
 
+                _, thresh = cv2.threshold(
+                    gray,
+                    0,
+                    255,
+                    cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                )
+
+                ocr_res = reader.readtext(
+                    thresh,
+                    detail=0,
+                    paragraph=False
+                )
+
+                raw_text = "".join(
+                    ocr_res
+                )
+
+                raw_text = raw_text.replace(
+                    " ",
+                    ""
+                )
+
+                
+                clean_text = "".join([
+                    c for c in raw_text
+                    if c.isdigit()
+                ])
+                if len(clean_text) < 4:
+                  clean_text = ""
+
+                
+                if len(clean_text) == 6:
+
+                    clean_text = (
+                        clean_text[:2]
+                        + "-"
+                        + clean_text[2:]
+                    )
+
+                best_plate = clean_text
+
+                print("PLATE =", best_plate)
+
+   
+                if len(best_plate) >= 4:
+                    if best_plate != last_plate:
+                       last_plate = best_plate
+
+                if best_box:
+                    last_box = best_box
+
+
+                if best_box is None:
+
+                    last_plate = ""
+                    last_box = None
+
+                return {
+
+                    "plate":
+                        last_plate
+                        or "Detecting...",
+
+                    "confidence": 0.95,
+
+                    "box":
+                        last_box
+
+                }
+
+       
         return {
-            "plate": best_plate,
-            "confidence": round(best_conf, 2),
-            "box": best_box
+
+            "plate":
+                last_plate
+                or "Waiting for plate...",
+
+            "confidence": 0.95 if last_plate else 0,
+
+            "box":
+                last_box
+
         }
 
     except Exception as e:
-        print("Plate Error:", str(e))
-        return {"plate": "Error", "confidence": 0, "box": None}
+
+        print("PLATE ERROR:", e)
+
+        return {
+
+            "plate":
+                last_plate
+                or "Error",
+
+            "confidence": 0,
+
+            "box":
+                last_box
+
+        }
 @app.route('/verify_otp', methods=['POST'])
 def verify_otp():
 
@@ -313,7 +397,7 @@ def ignore_alert_item():
     db.logs.insert_one({
         "event": "Ignored alert",
         "time": str(datetime.now()),
-        "user": data.get("user")   # 🔥 هون الإيميل
+        "user": data.get("user")    
     })
 
     return {"msg": "ignored"}
@@ -336,7 +420,7 @@ def mark_alert_read():
 def add_shift():
     data = request.json
 
-    print("DATA RECEIVED:", data)  # 🔥 مهم
+    print("DATA RECEIVED:", data)  
 
     db.shifts.insert_one({
         "email": data["email"],
@@ -389,8 +473,8 @@ def delete_user():
 def get_logs():
     logs = list(
         db.logs.find({}, {"_id": 0})
-        .sort("time", -1)   # 🔥 الأحدث أول
-        .limit(5)           # 🔥 آخر 5 فقط
+        .sort("time", -1)   
+        .limit(5)          
     )
     return jsonify(logs)
 
@@ -416,11 +500,16 @@ def update_role():
 
 @app.route('/location', methods=['POST'])
 def location():
+
     data = request.json
 
-    db.locations.insert_one(data)
+    db.locations.update_one(
+        {"email": data["email"]},
+        {"$set": data},
+        upsert=True
+    )
 
-    return {"message": "Location saved"}
+    return {"message":"saved"}
 
 @app.route('/get_locations', methods=['GET'])
 def get_locations():
@@ -429,6 +518,22 @@ def get_locations():
 
     return jsonify(locations)
 
+
+@app.route("/dashboard_stats")
+def dashboard_stats():
+
+    online = db.locations.count_documents({})
+
+    alerts = db.alerts.count_documents({})
+
+    coverage = min(online * 20, 100)
+
+    return jsonify({
+    "online": online,
+    "alerts": alerts,
+    "patrols": online,
+    "coverage": coverage
+})
 
 
 @app.route("/get_my_location")
@@ -463,7 +568,6 @@ def assign_alert():
     return {"msg":"ok"}
 
 
-# 🔥 citizens collection
 citizens = db.citizens
 
 @app.route("/add_citizen", methods=["POST"])
@@ -492,6 +596,11 @@ def add_citizen():
         "embedding": embedding
 
     })
+
+    try:
+        get_citizen_embedding_cache(force_refresh=True)
+    except NameError:
+        pass
 
     return {"msg":"Citizen added"}
 
@@ -531,35 +640,234 @@ def add_system_alert():
 
 import numpy as np
 
-def find_match(new_embedding, threshold=0.45):
 
-    citizens = list(db.citizens.find())
+BASE_THRESHOLD = 0.18
+LOW_Q = 0.30
+HIGH_Q = 0.70
+LOW_OFFSET = 0.02
+HIGH_OFFSET = -0.01
+MIN_THRESHOLD = 0.15
+MAX_THRESHOLD = 0.60
 
-    best_match = None
-    min_distance = 999
+MIN_LIVE_SIMILARITY = 0.15
+MIN_TOP1_GAP = 0.00
 
-    for c in citizens:
+CITIZEN_CACHE = {
+    "items": [],
+    "matrix": None,
+    "expires_at": 0.0
+}
+CITIZEN_CACHE_TTL = 2.0  
 
-        if "embedding" not in c:
+
+def l2_normalize_vector(vector):
+    vector = np.asarray(vector, dtype=np.float32)
+    norm = np.linalg.norm(vector) + 1e-12
+    return vector / norm
+
+
+def get_citizen_embedding_cache(force_refresh=False):
+    """Load citizen embeddings from MongoDB and cache normalized matrix for fast dot-product search."""
+    now = time.time()
+
+    if (
+        not force_refresh
+        and CITIZEN_CACHE["matrix"] is not None
+        and now < CITIZEN_CACHE["expires_at"]
+    ):
+        return CITIZEN_CACHE["items"], CITIZEN_CACHE["matrix"]
+
+    items = []
+    embeddings = []
+
+    for citizen in db.citizens.find():
+        emb = citizen.get("embedding")
+        if emb is None:
             continue
 
-        db_embedding = np.array(c["embedding"])
+        try:
+            emb = l2_normalize_vector(emb)
+            items.append(citizen)
+            embeddings.append(emb)
+        except Exception as e:
+            print("Skipping invalid citizen embedding:", e)
 
-        distance = cosine(
-            new_embedding,
-            db_embedding
-        )
+    matrix = np.vstack(embeddings).astype(np.float32) if embeddings else None
 
-        if distance < min_distance:
-            min_distance = distance
-            best_match = c
+    CITIZEN_CACHE["items"] = items
+    CITIZEN_CACHE["matrix"] = matrix
+    CITIZEN_CACHE["expires_at"] = now + CITIZEN_CACHE_TTL
 
-    print("BEST DISTANCE:", min_distance)
+    return items, matrix
 
-    if min_distance < threshold:
-        return best_match
 
-    return None
+def compute_quality_features_from_image(img, bbox=None):
+    """Compute brightness, contrast, and blur from the detected face crop when available."""
+    if img is None or img.size == 0:
+        return 127.5, 0.0, 0.0
+
+    crop = img
+
+    if bbox is not None:
+        h, w = img.shape[:2]
+        x1, y1, x2, y2 = [int(v) for v in bbox]
+        pad_x = int(0.08 * max(1, x2 - x1))
+        pad_y = int(0.08 * max(1, y2 - y1))
+        x1 = max(0, min(x1 - pad_x, w - 1))
+        x2 = max(0, min(x2 + pad_x, w))
+        y1 = max(0, min(y1 - pad_y, h - 1))
+        y2 = max(0, min(y2 + pad_y, h))
+
+        if x2 > x1 and y2 > y1:
+            crop = img[y1:y2, x1:x2]
+
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+
+    brightness = float(np.mean(gray))
+    contrast = float(np.std(gray))
+    blur = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+
+    return brightness, contrast, blur
+
+
+def compute_live_quality_score(brightness, contrast, blur):
+    """
+    Fast live approximation of the notebook quality score.
+    Same feature logic and weights: 0.5 blur + 0.2 contrast + 0.3 brightness suitability.
+    """
+    brightness_good = 1.0 - abs(brightness - 127.5) / 127.5
+    brightness_good = float(np.clip(brightness_good, 0.0, 1.0))
+
+    contrast_norm = float(np.clip(contrast / 80.0, 0.0, 1.0))
+    blur_norm = float(np.clip(blur / 500.0, 0.0, 1.0))
+
+    quality_score = (
+        0.5 * blur_norm +
+        0.2 * contrast_norm +
+        0.3 * brightness_good
+    )
+
+    return float(np.clip(quality_score, 0.0, 1.0))
+
+
+def adaptive_similarity_threshold(quality_score):
+    """Adaptive threshold from the final efficient notebook configuration."""
+    q = float(quality_score)
+
+    if q <= LOW_Q:
+        threshold = BASE_THRESHOLD + LOW_OFFSET
+    elif q >= HIGH_Q:
+        threshold = BASE_THRESHOLD + HIGH_OFFSET
+    else:
+        alpha = (q - LOW_Q) / (HIGH_Q - LOW_Q + 1e-12)
+        offset = LOW_OFFSET * (1 - alpha) + HIGH_OFFSET * alpha
+        threshold = BASE_THRESHOLD + offset
+
+    threshold = max(threshold, MIN_LIVE_SIMILARITY)
+    return float(np.clip(threshold, MIN_THRESHOLD, MAX_THRESHOLD))
+
+
+def face_area(face):
+    x1, y1, x2, y2 = face.bbox.astype(int)
+    return max(0, x2 - x1) * max(0, y2 - y1)
+
+
+def evaluate_face_match(new_embedding, img=None, bbox=None):
+    """
+    Evaluate one detected face against the citizen gallery.
+    Returns a dictionary with match decision and scores.
+    """
+    citizens, gallery_matrix = get_citizen_embedding_cache()
+
+    if gallery_matrix is None or len(citizens) == 0:
+        print("No citizen embeddings found in database.")
+        return {
+            "accepted": False,
+            "match": None,
+            "best_similarity": -1.0,
+            "second_similarity": -1.0,
+            "gap": 0.0,
+            "threshold": 1.0,
+            "quality_score": 0.0,
+            "margin": -999.0,
+        }
+
+    probe_embedding = l2_normalize_vector(new_embedding)
+
+    similarities = gallery_matrix @ probe_embedding
+    best_idx = int(np.argmax(similarities))
+    best_similarity = float(similarities[best_idx])
+    best_match = citizens[best_idx]
+
+    if len(similarities) > 1:
+        second_similarity = float(np.partition(similarities, -2)[-2])
+    else:
+        second_similarity = -1.0
+    gap = best_similarity - second_similarity
+
+    brightness, contrast, blur = compute_quality_features_from_image(img, bbox)
+    quality_score = compute_live_quality_score(brightness, contrast, blur)
+    threshold = adaptive_similarity_threshold(quality_score)
+
+    accepted = (best_similarity >= threshold) and (gap >= MIN_TOP1_GAP or len(similarities) == 1)
+    margin = best_similarity - threshold
+
+    print("BEST:", best_match.get("name", "UNKNOWN"),
+          "SIM:", round(best_similarity, 4),
+          "GAP:", round(gap, 4),
+          "Q:", round(quality_score, 4),
+          "TH:", round(threshold, 4),
+          "ACCEPT:", accepted)
+
+    return {
+        "accepted": accepted,
+        "match": best_match if accepted else None,
+        "candidate": best_match,
+        "best_similarity": best_similarity,
+        "second_similarity": second_similarity,
+        "gap": gap,
+        "threshold": threshold,
+        "quality_score": quality_score,
+        "margin": margin,
+    }
+
+
+def find_match(new_embedding, img=None, bbox=None):
+    """Backward-compatible wrapper used by non-live endpoints."""
+    result = evaluate_face_match(new_embedding, img, bbox)
+    return result["match"] if result["accepted"] else None
+
+
+def select_best_face_result(faces, img):
+    """
+    Re-evaluate every detected face in the current frame.
+    This prevents the app from sticking to the first detected face when the person changes.
+    """
+    if not faces:
+        return None, None, None
+
+    best_accepted = None
+    largest_face = max(faces, key=face_area)
+
+    for face in faces:
+        result = evaluate_face_match(face.embedding, img, face.bbox)
+       
+        if result["accepted"]:
+            if best_accepted is None or result["margin"] > best_accepted["result"]["margin"]:
+                best_accepted = {"face": face, "result": result}
+
+    if best_accepted is not None:
+        return best_accepted["face"], best_accepted["result"], best_accepted["result"]["match"]
+
+    
+    unknown_result = evaluate_face_match(largest_face.embedding, img, largest_face.bbox)
+    return largest_face, unknown_result, None
+
+
+def decode_uploaded_image(file):
+    """Faster than saving every frame to temp.jpg."""
+    file_bytes = np.frombuffer(file.read(), np.uint8)
+    return cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
 
 @app.route("/detect_face", methods=["POST"])
@@ -567,34 +875,36 @@ def detect_face():
 
     file = request.files["image"]
 
-    path = "temp.jpg"
-
-    file.save(path)
-
     try:
-
-        img = cv2.imread(path)
+        img = decode_uploaded_image(file)
+        if img is None:
+            return {"msg": "Invalid image"}
 
         faces = face_app.get(img)
 
         if len(faces) == 0:
-            return {"msg":"No face found"}
+            return {"msg": "No face found"}
 
-        embedding = faces[0].embedding
-
-        match = find_match(embedding)
+        face, result, match = select_best_face_result(faces, img)
 
         if match:
-
             return {
                 "name": match["name"],
                 "nid": match["nid"],
-                "risk": match["risk"],
-                "location": match.get("location",""),
-                "image": match.get("image","")
+                "risk": match.get("risk", "UNKNOWN"),
+                "location": match.get("location", ""),
+                "image": match.get("image", ""),
+                "similarity": round(result["best_similarity"], 4),
+                "threshold": round(result["threshold"], 4),
+                "quality_score": round(result["quality_score"], 4),
             }
 
-        return {"msg":"Unknown"}
+        return {
+            "msg": "Unknown",
+            "similarity": round(result["best_similarity"], 4) if result else None,
+            "threshold": round(result["threshold"], 4) if result else None,
+            "quality_score": round(result["quality_score"], 4) if result else None,
+        }
 
     except Exception as e:
         return {"error": str(e)}
@@ -604,84 +914,69 @@ import cv2
 import numpy as np
 
 
-
-
-
 @app.route("/detect_face_live", methods=["POST"])
 def detect_face_live():
 
     file = request.files["image"]
 
-    path = "temp.jpg"
-
-    file.save(path)
-
     try:
-
-        img = cv2.imread(path)
+        img = decode_uploaded_image(file)
+        if img is None:
+            return {"face": None, "name": "Unknown", "risk": "UNKNOWN"}
 
         faces = face_app.get(img)
 
         if len(faces) == 0:
-            return {"face": None}
+            return {"face": None, "name": "Unknown", "risk": "UNKNOWN"}
 
-        face = faces[0]
-
+        face, result, match = select_best_face_result(faces, img)
         bbox = face.bbox.astype(int)
-
-        x1,y1,x2,y2 = bbox
-
+        x1, y1, x2, y2 = bbox
         w = x2 - x1
         h = y2 - y1
 
-        embedding = face.embedding
-
-        match = find_match(embedding)
+        face_box = {
+            "x": int(x1),
+            "y": int(y1),
+            "w": int(w),
+            "h": int(h)
+        }
 
         if match:
-
-            # 🔥 سجل لوق
+           
             db.logs.insert_one({
-                "event":"Face Recognized",
+                "event": "Face Recognized",
                 "time": str(datetime.now()),
                 "username": match["name"],
-                "status":"SUCCESS"
+                "status": "SUCCESS"
             })
 
             return {
-
-                "face":{
-                    "x":int(x1),
-                    "y":int(y1),
-                    "w":int(w),
-                    "h":int(h)
-                },
-
+                "face": face_box,
                 "name": match["name"],
                 "nid": match["nid"],
-                "risk": match.get("risk","UNKNOWN"),
-                "location": match.get("location",""),
-                "image": match.get("image","")
-
+                "risk": match.get("risk", "UNKNOWN"),
+                "location": match.get("location", ""),
+                "image": match.get("image", ""),
+                "similarity": round(result["best_similarity"], 4),
+                "threshold": round(result["threshold"], 4),
+                "quality_score": round(result["quality_score"], 4),
+                "gap": round(result["gap"], 4),
             }
 
         return {
-
-            "face":{
-                "x":int(x1),
-                "y":int(y1),
-                "w":int(w),
-                "h":int(h)
-            },
-
-            "name":"Unknown",
-            "risk":"UNKNOWN"
-
+            "face": face_box,
+            "name": "Unknown",
+            "risk": "UNKNOWN",
+            "similarity": round(result["best_similarity"], 4) if result else None,
+            "threshold": round(result["threshold"], 4) if result else None,
+            "quality_score": round(result["quality_score"], 4) if result else None,
+            "gap": round(result["gap"], 4) if result else None,
         }
 
     except Exception as e:
-
         return {"error": str(e)}
+
 from flask import send_file
 
 from flask import send_file
@@ -696,7 +991,7 @@ def get_image():
     print("FILE EXISTS =", os.path.exists(path))
 
     return send_file(path)
-# 🟢 صفحات
+
 @app.route('/admin')
 def admin():
     return render_template("admin.html")
